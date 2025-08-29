@@ -20,10 +20,11 @@ const app = express();
 const httpServer = createServer(app);
 app.use(cookieParser());
 
-// Allow CORS from Vercel and configured frontend URL (both http and https)
+// Allow CORS from configured frontend URL(s)
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.FRONTEND_URL?.replace('http://', 'https://'),
+  'https://frontend-uyn7.onrender.com',
   /.*\.vercel\.app$/
 ].filter(Boolean);
 
@@ -36,7 +37,21 @@ app.use(cors({
     return isAllowed ? callback(null, true) : callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Explicit preflight handling
+app.options('*', cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.some((allowed) =>
+      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+    );
+    return isAllowed ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(bodyParser.json());
@@ -54,7 +69,7 @@ const io = new Server(httpServer, {
       );
       return isAllowed ? callback(null, true) : callback(new Error('Not allowed by CORS'));
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true
   }
 });
